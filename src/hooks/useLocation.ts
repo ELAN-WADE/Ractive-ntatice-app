@@ -132,9 +132,10 @@ export function useLocation(): UseLocationReturn {
       } else {
         subscription.remove();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (isMountedRef.current) {
-        setError(err?.message ?? 'Failed to get your location.');
+        const message = err instanceof Error ? err.message : 'Failed to get your location.';
+        setError(message);
         setIsLoading(false);
       }
     }

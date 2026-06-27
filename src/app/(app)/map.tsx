@@ -24,8 +24,6 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { useZoneStore } from '@/stores/useZoneStore';
 import type { Zone } from '@/types/location';
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export default function MapScreen() {
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
   const insets = useSafeAreaInsets();
@@ -42,12 +40,12 @@ export default function MapScreen() {
 
   const clearRequestState = useZoneStore((s) => s.clearRequestState);
 
-  // ── Zone press (shows detail bottom sheet)
+  // Show bottom sheet on zone tap
   const handleZonePress = useCallback((zone: Zone) => {
     setSelectedZone(zone);
   }, []);
 
-  // ── Sign out confirmation
+  // Confirm sign out
   const handleSignOut = useCallback(() => {
     Alert.alert(
       'Sign Out',
@@ -75,9 +73,9 @@ export default function MapScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
-      {/* ── Map (full screen, no borders) */}
+      {/* Map (full screen, no borders) */}
       <ZoneMap
         zones={zones}
         userLocation={location}
@@ -87,7 +85,7 @@ export default function MapScreen() {
         onZonePress={handleZonePress}
       />
 
-      {/* ── Floating header — sits above the map */}
+      {/* Floating header over the map */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
@@ -95,7 +93,7 @@ export default function MapScreen() {
             <Text style={styles.headerSubtitle}>
               {isZonesLoading
                 ? 'Loading zones…'
-                : `${zones.length} zone${zones.length !== 1 ? 's' : ''} active`}
+                : `${zones.length} active neighborhood${zones.length !== 1 ? 's' : ''}`}
             </Text>
           </View>
 
@@ -112,38 +110,40 @@ export default function MapScreen() {
               testID="btn-sign-out"
               accessibilityLabel="Sign out"
             >
-              <LogOut size={18} color="#94A3B8" strokeWidth={2} />
+              <LogOut size={18} color="#475569" strokeWidth={2} />
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      {/* ── Floating bottom panel — Google Maps style */}
-      <View style={[styles.bottomPanel, { paddingBottom: insets.bottom + 8 }]}>
-        {/* Active zone badge */}
-        {activeZone && (
-          <View style={styles.activeZoneBadge}>
-            <View style={[styles.activeZoneDot, { backgroundColor: activeZone.color }]} />
-            <Text style={styles.activeZoneName}>Inside: {activeZone.name}</Text>
-          </View>
-        )}
+      {/* Floating bottom panel - Google Maps style */}
+      <View style={[styles.bottomPanel, { bottom: insets.bottom + 8 }]}>
+        <View style={styles.bottomPanelCard}>
+          {/* Active zone badge */}
+          {activeZone && (
+            <View style={styles.activeZoneBadge}>
+              <View style={[styles.activeZoneDot, { backgroundColor: activeZone.color }]} />
+              <Text style={styles.activeZoneName}>Inside: {activeZone.name}</Text>
+            </View>
+          )}
 
-        {/* User email pill */}
-        <Text style={styles.userEmail} numberOfLines={1}>
-          {userEmail}
-        </Text>
+          {/* User email pill */}
+          <Text style={styles.userEmail} numberOfLines={1}>
+            {userEmail}
+          </Text>
 
-        {/* Join request button */}
-        <JoinButton
-          userLocation={location}
-          activeZone={activeZone}
-          zones={zones}
-          isLocationLoading={isLocationLoading}
-          onSuccess={handleJoinSuccess}
-        />
+          {/* Join request button */}
+          <JoinButton
+            userLocation={location}
+            activeZone={activeZone}
+            zones={zones}
+            isLocationLoading={isLocationLoading}
+            onSuccess={handleJoinSuccess}
+          />
+        </View>
       </View>
 
-      {/* ── Zone detail bottom sheet modal */}
+      {/* Zone detail bottom sheet modal */}
       <Modal
         visible={selectedZone !== null}
         transparent
@@ -186,12 +186,12 @@ export default function MapScreen() {
                     <Text style={styles.infoLabel}>Status</Text>
                     {activeZone?.id === selectedZone.id ? (
                       <View style={styles.statusBadgeInside}>
-                        <CheckCircle2 size={12} color="#34D399" strokeWidth={2.5} />
+                        <CheckCircle2 size={12} color="#059669" strokeWidth={2.5} />
                         <Text style={styles.statusBadgeTextInside}>You are here</Text>
                       </View>
                     ) : (
                       <View style={styles.statusBadgeOutside}>
-                        <MapPin size={12} color="#94A3B8" strokeWidth={2} />
+                        <MapPin size={12} color="#64748B" strokeWidth={2} />
                         <Text style={styles.statusBadgeTextOutside}>Outside zone</Text>
                       </View>
                     )}
@@ -214,16 +214,14 @@ export default function MapScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  // Full-screen root — map fills everything
+  // Full-screen root
   root: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#F8FAFC',
   },
 
-  // ── Floating header — glassy dark pill over the map
+  // Floating header
   header: {
     position: 'absolute',
     top: 0,
@@ -232,14 +230,31 @@ const styles = StyleSheet.create({
     zIndex: 10,
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: 'rgba(2, 6, 23, 0.88)',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderBottomColor: '#E2E8F0',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 2px 6px rgba(0,0,0,0.05)',
+      },
+    }),
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 768,
   },
   headerLeft: {
     flex: 1,
@@ -247,12 +262,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 19,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     letterSpacing: -0.4,
   },
   headerSubtitle: {
     fontSize: 11,
-    color: '#475569',
+    color: '#64748B',
     marginTop: 1,
     fontWeight: '500',
   },
@@ -265,55 +280,69 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#CBD5E1',
+    color: '#475569',
   },
   iconBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  // ── Floating bottom panel
+  // Floating bottom panel
   bottomPanel: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: 'rgba(2, 6, 23, 0.94)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+  },
+  bottomPanelCard: {
+    width: '92%',
+    maxWidth: 500,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     paddingTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 8,
+      },
+      web: {
+        boxShadow: '0px 6px 16px rgba(0,0,0,0.12)',
+      },
+    }),
   },
   activeZoneBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: 'rgba(52, 211, 153, 0.07)',
+    backgroundColor: '#ECFDF5',
     borderRadius: 24,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.18)',
+    borderColor: '#A7F3D0',
     gap: 6,
     marginBottom: 6,
   },
@@ -325,40 +354,57 @@ const styles = StyleSheet.create({
   activeZoneName: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#34D399',
+    color: '#065F46',
     letterSpacing: 0.1,
   },
   userEmail: {
     textAlign: 'center',
     fontSize: 11,
-    color: '#334155',
+    color: '#64748B',
     paddingHorizontal: 20,
     marginBottom: 4,
     fontWeight: '500',
   },
 
-  // ── Zone detail bottom sheet
+  // Zone detail bottom sheet
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   modalCard: {
-    backgroundColor: '#0F172A',
+    width: '100%',
+    maxWidth: 600,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 22,
     paddingTop: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: '#E2E8F0',
     borderBottomWidth: 0,
     gap: 14,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 10,
+      },
+      web: {
+        boxShadow: '0px -4px 12px rgba(0,0,0,0.08)',
+      },
+    }),
   },
   modalHandle: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: '#E2E8F0',
     alignSelf: 'center',
     marginBottom: 8,
   },
@@ -381,18 +427,18 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     letterSpacing: -0.3,
   },
   modalCloseIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E2E8F0',
   },
   modalDescription: {
     fontSize: 14,
@@ -400,7 +446,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // ── Info table inside the bottom sheet
+  // Info table inside the bottom sheet
   infoTable: {
     gap: 0,
   },
@@ -410,18 +456,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    borderTopColor: '#E2E8F0',
   },
   infoLabel: {
     fontSize: 12,
-    color: '#334155',
+    color: '#64748B',
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   infoValue: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#334155',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
     maxWidth: '60%',
     textAlign: 'right',
@@ -432,28 +478,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(52, 211, 153, 0.08)',
+    backgroundColor: '#ECFDF5',
     borderRadius: 10,
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.18)',
+    borderColor: '#A7F3D0',
   },
   statusBadgeTextInside: {
     fontSize: 12,
-    color: '#34D399',
+    color: '#059669',
     fontWeight: '600',
   },
   statusBadgeOutside: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(148, 163, 184, 0.07)',
+    backgroundColor: '#F1F5F9',
     borderRadius: 10,
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.15)',
+    borderColor: '#E2E8F0',
   },
   statusBadgeTextOutside: {
     fontSize: 12,
@@ -461,19 +507,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // ── Close button at the bottom of the sheet
+  // Close button
   modalCloseBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#F1F5F9',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
+    borderColor: '#E2E8F0',
   },
   modalCloseBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#475569',
   },
 });

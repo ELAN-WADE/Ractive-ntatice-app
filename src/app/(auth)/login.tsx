@@ -20,8 +20,6 @@ import { StatusBar } from 'expo-status-bar';
 import { Map, AlertCircle, Eye, EyeOff } from 'lucide-react-native';
 import { useAuthStore } from '@/stores/useAuthStore';
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export default function LoginScreen() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -99,167 +97,173 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Logo / Branding — SVG icon, no emoji */}
-        <View style={styles.branding}>
-          <View style={styles.logoCircle}>
-            <Map size={32} color="#E2E8F0" strokeWidth={1.5} />
-          </View>
-          <Text style={styles.appName}>NeighborHub</Text>
-          <Text style={styles.tagline}>Verify your neighborhood, connect with your community</Text>
-        </View>
-
-        {/* Card */}
-        <View style={styles.card}>
-
-          {/* Mode toggle tabs */}
-          <View style={styles.tabRow}>
-            <TouchableOpacity
-              style={[styles.tab, mode === 'signin' && styles.tabActive]}
-              onPress={() => { setMode('signin'); clearError(); setLocalError(null); }}
-              testID="tab-signin"
-            >
-              <Text style={[styles.tabText, mode === 'signin' && styles.tabTextActive]}>
-                Sign In
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, mode === 'signup' && styles.tabActive]}
-              onPress={() => { setMode('signup'); clearError(); setLocalError(null); }}
-              testID="tab-signup"
-            >
-              <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>
-                Create Account
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Error box — AlertCircle SVG, no emoji */}
-          {error && (
-            <View style={styles.errorBox} testID="error-box">
-              <AlertCircle size={14} color="#FCA5A5" strokeWidth={2} />
-              <Text style={styles.errorText}>{error}</Text>
+        <View style={styles.contentWrapper}>
+          {/* Logo / Branding */}
+          <View style={styles.branding}>
+            <View style={styles.logoCircle}>
+              <Map size={32} color="#475569" strokeWidth={1.5} />
             </View>
-          )}
-
-          {/* Email field */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Email Address</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor="#334155"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="next"
-              testID="input-email"
-            />
+            <Text style={styles.appName}>NeighborHub</Text>
+            <Text style={styles.tagline}>Verify your neighborhood, connect with your community</Text>
           </View>
 
-          {/* Password field with show/hide toggle */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.passwordRow}>
-              <TextInput
-                style={[styles.input, styles.passwordInput]}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                placeholderTextColor="#334155"
-                secureTextEntry={!showPassword}
-                returnKeyType={mode === 'signup' ? 'next' : 'done'}
-                onSubmitEditing={mode === 'signin' ? handleSubmit : undefined}
-                testID="input-password"
-              />
-              <Pressable
-                style={styles.showPasswordBtn}
-                onPress={() => setShowPassword((s) => !s)}
+          {/* Auth form card */}
+          <View style={styles.card}>
+
+            {/* Mode tabs */}
+            <View style={styles.tabRow}>
+              <TouchableOpacity
+                style={[styles.tab, mode === 'signin' && styles.tabActive]}
+                onPress={() => { setMode('signin'); clearError(); setLocalError(null); }}
+                testID="tab-signin"
               >
-                {showPassword
-                  ? <EyeOff size={18} color="#64748B" strokeWidth={2} />
-                  : <Eye size={18} color="#64748B" strokeWidth={2} />
-                }
-              </Pressable>
+                <Text style={[styles.tabText, mode === 'signin' && styles.tabTextActive]}>
+                  Sign In
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, mode === 'signup' && styles.tabActive]}
+                onPress={() => { setMode('signup'); clearError(); setLocalError(null); }}
+                testID="tab-signup"
+              >
+                <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>
+                  Create Account
+                </Text>
+              </TouchableOpacity>
             </View>
-          </View>
 
-          {/* Confirm password — signup only */}
-          {mode === 'signup' && (
+            {/* Error message */}
+            {error && (
+              <View style={styles.errorBox} testID="error-box">
+                <AlertCircle size={14} color="#EF4444" strokeWidth={2} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            {/* Email field */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Confirm Password</Text>
+              <Text style={styles.label}>Email Address</Text>
               <TextInput
                 style={styles.input}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="••••••••"
-                placeholderTextColor="#334155"
-                secureTextEntry={!showPassword}
-                returnKeyType="done"
-                onSubmitEditing={handleSubmit}
-                testID="input-confirm-password"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="you@example.com"
+                placeholderTextColor="#94A3B8"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="next"
+                testID="input-email"
               />
             </View>
-          )}
 
-          {/* Submit button */}
-          <TouchableOpacity
-            style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]}
-            onPress={handleSubmit}
-            disabled={isLoading}
-            testID="btn-submit"
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.submitBtnText}>
-                {mode === 'signin' ? 'Sign In' : 'Create Account'}
-              </Text>
+            {/* Password field with show/hide toggle */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry={!showPassword}
+                  returnKeyType={mode === 'signup' ? 'next' : 'done'}
+                  onSubmitEditing={mode === 'signin' ? handleSubmit : undefined}
+                  testID="input-password"
+                />
+                <Pressable
+                  style={styles.showPasswordBtn}
+                  onPress={() => setShowPassword((s) => !s)}
+                >
+                  {showPassword
+                    ? <EyeOff size={18} color="#64748B" strokeWidth={2} />
+                    : <Eye size={18} color="#64748B" strokeWidth={2} />
+                  }
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Confirm password — signup only */}
+            {mode === 'signup' && (
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Confirm Password</Text>
+                <TextInput
+                  style={styles.input}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry={!showPassword}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSubmit}
+                  testID="input-confirm-password"
+                />
+              </View>
             )}
-          </TouchableOpacity>
 
-          {/* Toggle link */}
-          <TouchableOpacity onPress={toggleMode} style={styles.toggleLink} testID="btn-toggle-mode">
-            <Text style={styles.toggleLinkText}>
-              {mode === 'signin'
-                ? "Don't have an account? Create one"
-                : 'Already have an account? Sign in'}
-            </Text>
-          </TouchableOpacity>
+            {/* Submit button */}
+            <TouchableOpacity
+              style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]}
+              onPress={handleSubmit}
+              disabled={isLoading}
+              testID="btn-submit"
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.submitBtnText}>
+                  {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Toggle link */}
+            <TouchableOpacity onPress={toggleMode} style={styles.toggleLink} testID="btn-toggle-mode">
+              <Text style={styles.toggleLinkText}>
+                {mode === 'signin'
+                  ? "Don't have an account? Create one"
+                  : 'Already have an account? Sign in'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Footer */}
+          <Text style={styles.footer}>
+            By continuing, you agree to verify your neighborhood membership.
+          </Text>
         </View>
-
-        {/* Footer */}
-        <Text style={styles.footer}>
-          By continuing, you agree to verify your neighborhood membership.
-        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617', // near-black — cleaner than the old slate
+    backgroundColor: '#F8FAFC',
   },
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 56,
   },
+  contentWrapper: {
+    width: '100%',
+    maxWidth: 440,
+    alignItems: 'stretch',
+  },
 
-  // ── Branding block
+  // Branding
   branding: {
     alignItems: 'center',
     marginBottom: 40,
@@ -268,9 +272,9 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -278,37 +282,46 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     letterSpacing: -0.8,
     marginBottom: 8,
   },
   tagline: {
     fontSize: 13,
-    color: '#475569',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 20,
-    maxWidth: 260,
+    maxWidth: 280,
   },
 
-  // ── Card
+  // Card
   card: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: '#E2E8F0',
     gap: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 4px 12px rgba(0,0,0,0.04)',
+      },
+    }),
   },
 
-  // ── Mode tabs
+  // Mode tabs
   tabRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: '#F1F5F9',
     borderRadius: 10,
     padding: 3,
   },
@@ -319,58 +332,58 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: '#E2E8F0',
   },
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#334155',
+    color: '#64748B',
   },
   tabTextActive: {
-    color: '#CBD5E1',
+    color: '#0F172A',
   },
 
-  // ── Error box
+  // Error box
   errorBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: 'rgba(30, 10, 10, 0.9)',
+    backgroundColor: '#FEF2F2',
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(220, 38, 38, 0.25)',
+    borderColor: '#FCA5A5',
   },
   errorText: {
     flex: 1,
     fontSize: 13,
-    color: '#FCA5A5',
+    color: '#B91C1C',
     fontWeight: '500',
     lineHeight: 18,
   },
 
-  // ── Form fields
+  // Form fields
   fieldGroup: {
     gap: 7,
   },
   label: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#64748B',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 11,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E2E8F0',
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#F1F5F9',
+    color: '#0F172A',
     flex: 1,
   },
   passwordRow: {
@@ -384,31 +397,40 @@ const styles = StyleSheet.create({
   showPasswordBtn: {
     width: 48,
     height: 48,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 11,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  // ── Submit button
+  // Submit button
   submitBtn: {
-    backgroundColor: '#1D4ED8',
+    backgroundColor: '#2563EB',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
     minHeight: 54,
-    shadowColor: '#1D4ED8',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#2563EB',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0px 3px 8px rgba(37,99,235,0.2)',
+      },
+    }),
   },
   submitBtnDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
   submitBtnText: {
     fontSize: 16,
@@ -417,7 +439,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  // ── Toggle link
+  // Toggle link
   toggleLink: {
     alignItems: 'center',
     paddingVertical: 4,
@@ -428,11 +450,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // ── Footer
+  // Footer
   footer: {
     textAlign: 'center',
     fontSize: 11,
-    color: '#1E293B',
+    color: '#94A3B8',
     marginTop: 28,
     lineHeight: 16,
     paddingHorizontal: 20,

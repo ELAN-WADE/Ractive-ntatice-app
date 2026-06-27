@@ -28,7 +28,7 @@ export default function AppLayout() {
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
-        contentStyle: { backgroundColor: '#0F172A' },
+        contentStyle: { backgroundColor: '#F8FAFC' },
       }}
     />
   );
@@ -37,7 +37,7 @@ export default function AppLayout() {
 const styles = StyleSheet.create({
   splash: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
   },

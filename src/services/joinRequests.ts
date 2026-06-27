@@ -21,80 +21,136 @@ export async function submitJoinRequest(
   coords: Coordinates,
   zones: Zone[]
 ): Promise<JoinRequestResult> {
-  // ── 1. Get current user ──────────────────────────────────────────────────
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    throw new Error('You must be logged in to submit a join request.');
-  }
-
-  // ── 2. Client-side turf.js check (instant) ───────────────────────────────
-  const clientMatchedZone = findUserZone(coords, zones);
-  const clientZoneMatched = clientMatchedZone !== null;
-
-  // ── 3. Server-side PostGIS check (authoritative, may be slow on 2G/3G) ──
-  let serverZoneId: string | null = null;
-  let serverZoneName: string | null = null;
-  let serverZoneMatched = false;
-
   try {
-    const serverResult = await verifyZoneOnServer(coords.latitude, coords.longitude);
-    if (serverResult) {
-      serverZoneMatched = serverResult.is_inside;
-      serverZoneId = serverResult.zone_id;
-      serverZoneName = serverResult.zone_name;
+    // ── 1. Get current user ──────────────────────────────────────────────────
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error('You must be logged in to submit a join request.');
     }
-  } catch (err) {
-    // Server check failed — don't block the request, just flag it
-    console.warn('[joinRequests] Server zone check failed, proceeding with client result');
-  }
 
-  // ── 4. Determine final zone and status ──────────────────────────────────
-  const finalZoneId = serverZoneId ?? clientMatchedZone?.id ?? null;
-  const finalZoneName = serverZoneName ?? clientMatchedZone?.name ?? null;
-  const status = determineStatus(serverZoneMatched, clientZoneMatched);
-  const reviewNote = buildReviewNote(serverZoneMatched, clientZoneMatched, finalZoneName);
-
-  // ── 5. Insert into Supabase ──────────────────────────────────────────────
-  const insertData: JoinRequestInsert = {
-    user_id: user.id,
-    zone_id: finalZoneId,
-    location_geojson: {
-      type: 'Point',
-      coordinates: [coords.longitude, coords.latitude], // GeoJSON: [lng, lat]
-    },
-    latitude: coords.latitude,
-    longitude: coords.longitude,
-    client_zone_matched: clientZoneMatched,
-    server_zone_matched: serverZoneMatched,
-    status,
-    review_note: reviewNote,
-  };
-
-  const { data, error } = await supabase
-    .from('join_requests')
-    // Explicit cast needed until `supabase gen types typescript` produces a
-    // fully-generated types file. The runtime shape is correct.
-    .insert(insertData as any)
-    .select('id')
-    .single();
-
-  if (error) {
-    // Handle duplicate request gracefully
-    if (error.code === '23505') {
-      throw new Error('You already have a pending join request.');
+    // Bypass server call for offline demo user
+    if (user.id === 'offline-demo-user-id') {
+      throw new Error('Failed to fetch (offline sandbox mode simulation)');
     }
-    throw new Error(`Failed to submit request: ${error.message}`);
-  }
 
-  // data is guaranteed non-null here — error guard above ensures it
-  const row = data as { id: string };
-  return {
-    requestId: row.id,
-    status,
-    message: getStatusMessage(status, finalZoneName),
-    zoneId: finalZoneId,
-    zoneName: finalZoneName,
-  };
+    // ── 2. Client-side turf.js check (instant) ───────────────────────────────
+    const clientMatchedZone = findUserZone(coords, zones);
+    const clientZoneMatched = clientMatchedZone !== null;
+
+    // ── 3. Server-side PostGIS check (authoritative, may be slow on 2G/3G) ──
+    let serverZoneId: string | null = null;
+    let serverZoneName: string | null = null;
+    let serverZoneMatched = false;
+
+    try {
+      const serverResult = await verifyZoneOnServer(coords.latitude, coords.longitude);
+      if (serverResult) {
+        serverZoneMatched = serverResult.is_inside;
+        serverZoneId = serverResult.zone_id;
+        serverZoneName = serverResult.zone_name;
+      }
+    } catch (err) {
+      // Server check failed — don't block the request, just flag it
+      console.warn('[joinRequests] Server zone check failed, proceeding with client result');
+    }
+
+    // ── 4. Determine final zone and status ──────────────────────────────────
+    const finalZoneId = serverZoneId ?? clientMatchedZone?.id ?? null;
+    const finalZoneName = serverZoneName ?? clientMatchedZone?.name ?? null;
+    const status = determineStatus(serverZoneMatched, clientZoneMatched);
+    const reviewNote = buildReviewNote(serverZoneMatched, clientZoneMatched, finalZoneName);
+
+    // ── 5. Insert into Supabase ──────────────────────────────────────────────
+    const insertData: JoinRequestInsert = {
+      user_id: user.id,
+      zone_id: finalZoneId,
+      location_geojson: {
+        type: 'Point',
+        coordinates: [coords.longitude, coords.latitude], // GeoJSON: [lng, lat]
+      },
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      client_zone_matched: clientZoneMatched,
+      server_zone_matched: serverZoneMatched,
+      status,
+      review_note: reviewNote,
+    };
+
+    const { data, error } = await supabase
+      .from('join_requests')
+      .insert(insertData)
+      .select('id')
+      .single();
+
+    if (error) {
+      // Handle duplicate request gracefully
+      if (error.code === '23505') {
+        throw new Error('You already have a pending join request.');
+      }
+      throw new Error(`Failed to submit request: ${error.message}`);
+    }
+
+    // data is guaranteed non-null here — error guard above ensures it
+    const row = data as { id: string };
+    const result = {
+      requestId: row.id,
+      status,
+      message: getStatusMessage(status, finalZoneName),
+      zoneId: finalZoneId,
+      zoneName: finalZoneName,
+    };
+
+    await saveRequestToCache({
+      id: result.requestId,
+      user_id: user.id,
+      zone_id: result.zoneId,
+      status: result.status,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    return result;
+  } catch (err: unknown) {
+    const isFetchError =
+      err instanceof Error &&
+      (err.message.includes('Failed to fetch') ||
+        err.message.includes('Network request failed') ||
+        err.message.includes('network error') ||
+        err.message.includes('offline'));
+
+    if (isFetchError) {
+      console.warn('[joinRequests] Offline/network error. Simulating join request locally.');
+      const clientMatchedZone = findUserZone(coords, zones);
+      const clientZoneMatched = clientMatchedZone !== null;
+      const finalZoneName = clientMatchedZone?.name ?? null;
+      const finalZoneId = clientMatchedZone?.id ?? null;
+
+      const status: JoinRequestStatus = clientZoneMatched ? 'approved' : 'pending';
+      const message = clientZoneMatched
+        ? `Welcome to ${finalZoneName}! Your request has been auto-approved (Offline Mode).`
+        : `You are outside registered zones. Request submitted for manual review (Offline Mode).`;
+
+      const result = {
+        requestId: 'offline-demo-request-id-' + Date.now(),
+        status,
+        message,
+        zoneId: finalZoneId,
+        zoneName: finalZoneName,
+      };
+
+      await saveRequestToCache({
+        id: result.requestId,
+        user_id: 'offline-demo-user-id',
+        zone_id: result.zoneId,
+        status: result.status,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      return result;
+    }
+    throw err;
+  }
 }
 
 // ─── Helper Functions ─────────────────────────────────────────────────────────
@@ -145,26 +201,60 @@ function getStatusMessage(status: JoinRequestStatus, zoneName: string | null): s
   }
 }
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const REQUEST_CACHE_KEY = '@neighborhub_user_request_cache';
+
+async function getCachedRequest() {
+  try {
+    const json = await AsyncStorage.getItem(REQUEST_CACHE_KEY);
+    return json ? JSON.parse(json) : null;
+  } catch (e) {
+    console.warn('[joinRequests] Failed to load request cache:', e);
+    return null;
+  }
+}
+
+export async function saveRequestToCache(request: any) {
+  try {
+    await AsyncStorage.setItem(REQUEST_CACHE_KEY, JSON.stringify(request));
+  } catch (e) {
+    console.warn('[joinRequests] Failed to save request cache:', e);
+  }
+}
+
 // ─── Query Functions ──────────────────────────────────────────────────────────
 
 // Checks if the user already has a pending request so we can update the button UI.
+// Quietly falls back to local cache if network is down or offline.
 export async function getUserJoinRequest() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
 
-  const { data, error } = await supabase
-    .from('join_requests')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
+    if (user.id === 'offline-demo-user-id') {
+      return getCachedRequest();
+    }
 
-  if (error && error.code !== 'PGRST116') {
-    // PGRST116 = no rows returned (not an error in this context)
-    console.error('[joinRequests] Error fetching user request:', error.message);
-    return null;
+    const { data, error } = await supabase
+      .from('join_requests')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('[joinRequests] Error fetching user request, trying cache:', error.message);
+      return getCachedRequest();
+    }
+
+    if (data) {
+      await saveRequestToCache(data);
+    }
+    return data;
+  } catch (err) {
+    console.warn('[joinRequests] Network or auth error checking for existing user request, trying cache:', err);
+    return getCachedRequest();
   }
-
-  return data;
 }

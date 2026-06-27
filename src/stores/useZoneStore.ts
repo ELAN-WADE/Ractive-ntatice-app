@@ -3,7 +3,9 @@
 // We also track their GPS location here.
 
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchZones } from '@/services/zones';
+import { getUserJoinRequest } from '@/services/joinRequests';
 import type { Zone, UserLocation, JoinRequestResult } from '@/types/location';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -74,14 +76,47 @@ export const useZoneStore = create<ZoneState>((set, get) => ({
     try {
       const zones = await fetchZones();
 
+      // Retrieve existing request for the user to restore status on app load
+      let requestResult: JoinRequestResult | null = null;
+      try {
+        const existingRequest = await getUserJoinRequest();
+        if (existingRequest) {
+          const matchedZone = zones.find((z) => z.id === existingRequest.zone_id);
+          const zoneName = matchedZone ? matchedZone.name : null;
+          const status = existingRequest.status;
+
+          // Compute message based on status
+          let message = 'Your request has been submitted for manual review.';
+          if (status === 'approved') {
+            message = `Welcome to ${zoneName ?? 'the neighborhood'}! Your request has been auto-approved.`;
+          } else if (status === 'under_review') {
+            message = `Your location is near the ${zoneName ?? 'zone'} boundary. An admin will review your request shortly.`;
+          } else if (status === 'rejected') {
+            message = `Your request to join ${zoneName ?? 'the neighborhood'} was rejected.`;
+          }
+
+          requestResult = {
+            requestId: existingRequest.id,
+            status,
+            message,
+            zoneId: existingRequest.zone_id,
+            zoneName,
+          };
+        }
+      } catch (reqErr) {
+        console.warn('[useZoneStore] Failed to check for existing join requests:', reqErr);
+      }
+
       set({
         zones,
+        joinRequestResult: requestResult,
         isLoadingZones: false,
         lastFetchedAt: Date.now(),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load zones.';
       set({
-        zonesError: err?.message ?? 'Failed to load zones.',
+        zonesError: message,
         isLoadingZones: false,
       });
     }
@@ -97,9 +132,14 @@ export const useZoneStore = create<ZoneState>((set, get) => ({
   setIsSubmittingRequest: (isSubmitting) => set({ isSubmittingRequest: isSubmitting }),
   setRequestError: (error) => set({ requestError: error }),
 
-  clearRequestState: () => set({
-    joinRequestResult: null,
-    isSubmittingRequest: false,
-    requestError: null,
-  }),
+  clearRequestState: () => {
+    set({
+      joinRequestResult: null,
+      isSubmittingRequest: false,
+      requestError: null,
+    });
+    AsyncStorage.removeItem('@neighborhub_user_request_cache').catch((e) =>
+      console.warn('[useZoneStore] Failed to clear request cache:', e)
+    );
+  },
 }));

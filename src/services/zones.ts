@@ -16,7 +16,17 @@ export const HARDCODED_ZONES: Zone[] = [
     name: 'Lekki Phase 1',
     description: 'Lekki Phase 1 residential area, Lagos Island',
     color: '#3B82F6', // blue
-    boundary: [], // populated from geojson below
+    boundary: [
+      { latitude: 6.4479, longitude: 3.4721 },
+      { latitude: 6.4479, longitude: 3.4835 },
+      { latitude: 6.4530, longitude: 3.4900 },
+      { latitude: 6.4600, longitude: 3.4890 },
+      { latitude: 6.4640, longitude: 3.4780 },
+      { latitude: 6.4620, longitude: 3.4670 },
+      { latitude: 6.4560, longitude: 3.4640 },
+      { latitude: 6.4490, longitude: 3.4680 },
+      { latitude: 6.4479, longitude: 3.4721 },
+    ],
     geojson: {
       type: 'Polygon',
       coordinates: [
@@ -40,7 +50,17 @@ export const HARDCODED_ZONES: Zone[] = [
     name: 'Yaba Tech Hub',
     description: 'Yaba technology hub and innovation cluster, Lagos Mainland',
     color: '#10B981', // green
-    boundary: [],
+    boundary: [
+      { latitude: 6.5050, longitude: 3.3720 },
+      { latitude: 6.5050, longitude: 3.3810 },
+      { latitude: 6.5090, longitude: 3.3860 },
+      { latitude: 6.5150, longitude: 3.3850 },
+      { latitude: 6.5180, longitude: 3.3780 },
+      { latitude: 6.5160, longitude: 3.3700 },
+      { latitude: 6.5110, longitude: 3.3670 },
+      { latitude: 6.5060, longitude: 3.3690 },
+      { latitude: 6.5050, longitude: 3.3720 },
+    ],
     geojson: {
       type: 'Polygon',
       coordinates: [
@@ -68,20 +88,19 @@ function zoneRowToZone(row: ZoneRow): Zone {
   const geojson = row.geojson;
   
   let outerRing: [number, number][] = [];
-  let normalizedGeojson = { type: 'Polygon' as const, coordinates: [] as any[] };
+  let normalizedGeojson: Zone['geojson'] = { type: 'Polygon', coordinates: [] };
 
-  // Safely extract the outer boundary ring depending on the geometry type
   if (geojson && geojson.coordinates && Array.isArray(geojson.coordinates)) {
     if (geojson.type === 'Polygon') {
-      outerRing = (geojson.coordinates[0] as [number, number][]) ?? [];
-      normalizedGeojson = geojson as any;
-    } else if (geojson.type === 'MultiPolygon') {
-      // For MultiPolygon, grab the outer ring of the first polygon
-      const firstPolygon = geojson.coordinates[0];
+      outerRing = geojson.coordinates[0] ?? [];
+      normalizedGeojson = geojson;
+    } else if ((geojson as unknown as { type: string }).type === 'MultiPolygon') {
+      const multiCoords = (geojson as unknown as { coordinates: [number, number][][][] }).coordinates;
+      const firstPolygon = multiCoords[0];
       if (Array.isArray(firstPolygon)) {
-        outerRing = (firstPolygon[0] as any as [number, number][]) ?? [];
+        outerRing = firstPolygon[0] ?? [];
       }
-      normalizedGeojson = geojson as any;
+      normalizedGeojson = { type: 'Polygon', coordinates: firstPolygon ?? [] };
     }
   }
 
@@ -91,11 +110,33 @@ function zoneRowToZone(row: ZoneRow): Zone {
     description: row.description,
     color: row.color,
     boundary: outerRing.map(([lng, lat]) => ({ latitude: lat, longitude: lng })),
-    geojson: normalizedGeojson as any,
+    geojson: normalizedGeojson,
   };
 }
 
-// Pulls zones from Supabase. If the network drops, it quietly fails over to the hardcoded ones.
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const ZONES_CACHE_KEY = '@neighborhub_zones_cache';
+
+async function getCachedZones(): Promise<Zone[] | null> {
+  try {
+    const json = await AsyncStorage.getItem(ZONES_CACHE_KEY);
+    return json ? JSON.parse(json) : null;
+  } catch (e) {
+    console.warn('[zones] Failed to load zones cache:', e);
+    return null;
+  }
+}
+
+async function saveZonesToCache(zones: Zone[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(ZONES_CACHE_KEY, JSON.stringify(zones));
+  } catch (e) {
+    console.warn('[zones] Failed to save zones to cache:', e);
+  }
+}
+
+// Pulls zones from Supabase. If the network drops, it quietly checks cache, then falls back to hardcoded ones.
 export async function fetchZones(): Promise<Zone[]> {
   try {
     const { data, error } = await supabase
@@ -104,20 +145,25 @@ export async function fetchZones(): Promise<Zone[]> {
       .order('name');
 
     if (error) {
-      console.warn('[zones] Supabase error, falling back to hardcoded zones:', error.message);
-      return HARDCODED_ZONES;
+      console.warn('[zones] Supabase error, checking cache:', error.message);
+      const cached = await getCachedZones();
+      return cached ?? HARDCODED_ZONES;
     }
 
     if (!data || data.length === 0) {
-      console.warn('[zones] No zones in DB, using hardcoded fallback.');
-      return HARDCODED_ZONES;
+      console.warn('[zones] No zones in DB, checking cache.');
+      const cached = await getCachedZones();
+      return cached ?? HARDCODED_ZONES;
     }
 
-    return (data as ZoneRow[]).map(zoneRowToZone);
+    const parsedZones = (data as ZoneRow[]).map(zoneRowToZone);
+    await saveZonesToCache(parsedZones);
+    return parsedZones;
   } catch (err) {
-    // Network error — fall back gracefully
-    console.error('[zones] Network error fetching zones:', err);
-    return HARDCODED_ZONES;
+    // Network error — try cache
+    console.error('[zones] Network error fetching zones, checking cache:', err);
+    const cached = await getCachedZones();
+    return cached ?? HARDCODED_ZONES;
   }
 }
 
@@ -132,10 +178,7 @@ export async function verifyZoneOnServer(
   try {
     const { data, error } = await supabase.rpc(
       'check_zone',
-      // TypeScript can't statically resolve custom RPC arg shapes without a
-      // generated types file (`supabase gen types typescript`). The runtime
-      // shape is correct; cast to `any` to unblock until types are generated.
-      { lat: latitude, lng: longitude } as any
+      { lat: latitude, lng: longitude }
     );
 
     if (error) {

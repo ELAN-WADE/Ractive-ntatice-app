@@ -12,12 +12,6 @@ export default function AuthLayout() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isInitialized = useAuthStore((s) => s.isInitialized);
-  const initialize = useAuthStore((s) => s.initialize);
-
-  // Initialize auth on first mount
-  useEffect(() => {
-    initialize();
-  }, []);
 
   // Redirect authenticated users to the app
   useEffect(() => {
@@ -40,7 +34,7 @@ export default function AuthLayout() {
       screenOptions={{
         headerShown: false,
         animation: 'fade',
-        contentStyle: { backgroundColor: '#0F172A' },
+        contentStyle: { backgroundColor: '#F8FAFC' },
       }}
     />
   );
@@ -49,7 +43,7 @@ export default function AuthLayout() {
 const styles = StyleSheet.create({
   splash: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
   },

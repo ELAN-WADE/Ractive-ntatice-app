@@ -15,7 +15,7 @@ export type JoinRequestStatus = 'pending' | 'approved' | 'rejected' | 'under_rev
  * Represents a row in the `zones` table.
  * The `geometry` field is a WKT or GeoJSON string when fetched via REST API.
  */
-export interface ZoneRow {
+export type ZoneRow = {
   id: string;
   name: string;
   description: string | null;
@@ -29,7 +29,7 @@ export interface ZoneRow {
 /**
  * Represents a row in the `join_requests` table.
  */
-export interface JoinRequestRow {
+export type JoinRequestRow = {
   id: string;
   user_id: string;
   zone_id: string | null;
@@ -58,12 +58,12 @@ export type JoinRequestInsert = Omit<
 
 // ─── GeoJSON Types ────────────────────────────────────────────────────────────
 
-export interface GeoJSONPoint {
+export type GeoJSONPoint = {
   type: 'Point';
   coordinates: [number, number]; // [longitude, latitude]
 }
 
-export interface GeoJSONPolygon {
+export type GeoJSONPolygon = {
   type: 'Polygon';
   coordinates: [number, number][][]; // Array of rings, each ring is array of [lng, lat]
 }
@@ -71,7 +71,7 @@ export interface GeoJSONPolygon {
 // ─── RPC Response Types ───────────────────────────────────────────────────────
 
 /** Response from the Supabase `check_zone` RPC function */
-export interface CheckZoneResponse {
+export type CheckZoneResponse = {
   zone_id: string | null;
   zone_name: string | null;
   is_inside: boolean;
@@ -86,13 +86,19 @@ export interface Database {
         Row: ZoneRow;
         Insert: Omit<ZoneRow, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<ZoneRow, 'id' | 'created_at' | 'updated_at'>>;
+        /** No FK relationships — empty array satisfies GenericRelationship[] */
+        Relationships: [];
       };
       join_requests: {
         Row: JoinRequestRow;
         Insert: JoinRequestInsert;
         Update: Partial<JoinRequestInsert>;
+        /** No FK relationships — empty array satisfies GenericRelationship[] */
+        Relationships: [];
       };
     };
+    /** No database views — Record<string, never> satisfies Record<string, GenericView> */
+    Views: Record<string, never>;
     Functions: {
       check_zone: {
         Args: { lat: number; lng: number };
@@ -101,3 +107,5 @@ export interface Database {
     };
   };
 }
+
+

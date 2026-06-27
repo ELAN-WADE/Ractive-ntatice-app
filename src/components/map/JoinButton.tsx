@@ -11,6 +11,7 @@ import {
   View,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import {
   MapPin,
@@ -25,8 +26,6 @@ import { useZoneStore } from '@/stores/useZoneStore';
 import { submitJoinRequest } from '@/services/joinRequests';
 import type { Zone, UserLocation } from '@/types/location';
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 interface JoinButtonProps {
   userLocation: UserLocation | null;
   activeZone: Zone | null;
@@ -34,8 +33,6 @@ interface JoinButtonProps {
   isLocationLoading: boolean;
   onSuccess?: () => void;
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export function JoinButton({
   userLocation,
@@ -83,8 +80,8 @@ export function JoinButton({
         result.message,
         [{ text: 'Done' }]
       );
-    } catch (err: any) {
-      const errorMessage = err?.message ?? 'Failed to submit your request. Please try again.';
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to submit your request. Please try again.';
       setError(errorMessage);
       Alert.alert('Something went wrong', errorMessage, [{ text: 'OK' }]);
     } finally {
@@ -121,7 +118,7 @@ export function JoinButton({
       {/* Zone status chip — sits above the main button like a Google Maps info pill */}
       {!isLocationLoading && userLocation && !hasResult && (
         <View style={[styles.statusChip, isInsideZone ? styles.chipInside : styles.chipOutside]}>
-          <View style={[styles.chipDot, { backgroundColor: isInsideZone ? '#34D399' : '#FBBF24' }]} />
+          <View style={[styles.chipDot, { backgroundColor: isInsideZone ? '#059669' : '#D97706' }]} />
           <Text style={[styles.chipText, isInsideZone ? styles.chipTextInside : styles.chipTextOutside]}>
             {isInsideZone ? `Inside ${activeZone?.name}` : 'Outside registered zones'}
           </Text>
@@ -131,7 +128,7 @@ export function JoinButton({
       {/* Error message strip */}
       {requestError && (
         <View style={styles.errorBox}>
-          <AlertTriangle size={13} color="#FCA5A5" strokeWidth={2} />
+          <AlertTriangle size={13} color="#EF4444" strokeWidth={2} />
           <Text style={styles.errorText}>{requestError}</Text>
         </View>
       )}
@@ -173,8 +170,6 @@ export function JoinButton({
     </View>
   );
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 type Status = 'pending' | 'approved' | 'rejected' | 'under_review' | undefined;
 
@@ -251,8 +246,6 @@ function getSubtitleText(params: {
   return "You're outside our zones — an admin will review";
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
@@ -272,12 +265,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipInside: {
-    backgroundColor: 'rgba(52, 211, 153, 0.08)',
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
   },
   chipOutside: {
-    backgroundColor: 'rgba(251, 191, 36, 0.08)',
-    borderColor: 'rgba(251, 191, 36, 0.2)',
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
   },
   chipDot: {
     width: 7,
@@ -289,24 +282,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.1,
   },
-  chipTextInside: { color: '#34D399' },
-  chipTextOutside: { color: '#FBBF24' },
+  chipTextInside: { color: '#065F46' },
+  chipTextOutside: { color: '#92400E' },
 
   // Error bar
   errorBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: 'rgba(30, 10, 10, 0.9)',
+    backgroundColor: '#FEF2F2',
     borderRadius: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: 'rgba(220, 38, 38, 0.25)',
+    borderColor: '#FCA5A5',
   },
   errorText: {
     flex: 1,
     fontSize: 12,
-    color: '#FCA5A5',
+    color: '#B91C1C',
     fontWeight: '500',
     lineHeight: 18,
   },
@@ -317,12 +310,21 @@ const styles = StyleSheet.create({
     paddingVertical: 17,
     paddingHorizontal: 20,
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
     minHeight: 62,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0px 3px 6px rgba(0,0,0,0.1)',
+      },
+    }),
   },
   row: {
     flexDirection: 'row',
@@ -334,13 +336,13 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.55 },
 
-  // Button state variants — monochromatic palette
-  buttonInside:   { backgroundColor: '#1D4ED8' },   // solid blue — inside zone
-  buttonOutside:  { backgroundColor: '#374151' },   // dark gray — outside zone
-  buttonMuted:    { backgroundColor: '#1E293B' },   // very dark — loading/unknown
-  buttonApproved: { backgroundColor: '#065F46' },   // deep green
-  buttonReview:   { backgroundColor: '#451A03' },   // deep amber
-  buttonPending:  { backgroundColor: '#0F172A' },   // near-black
+  // Button state variants — clean and high contrast light-mode values
+  buttonInside:   { backgroundColor: '#2563EB' },   // vibrant blue — inside zone
+  buttonOutside:  { backgroundColor: '#475569' },   // slate gray — outside zone
+  buttonMuted:    { backgroundColor: '#94A3B8' },   // muted gray — loading/unknown
+  buttonApproved: { backgroundColor: '#059669' },   // emerald green
+  buttonReview:   { backgroundColor: '#D97706' },   // amber
+  buttonPending:  { backgroundColor: '#64748B' },   // medium gray
 
   // Label text
   buttonLabel: {
@@ -351,7 +353,7 @@ const styles = StyleSheet.create({
   },
   buttonSubtitle: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.85)',
     marginTop: 2,
     fontWeight: '400',
   },
@@ -360,8 +362,8 @@ const styles = StyleSheet.create({
   accuracyNote: {
     textAlign: 'center',
     fontSize: 11,
-    color: '#475569',
+    color: '#64748B',
     paddingHorizontal: 10,
     lineHeight: 16,
   },
-} as const);
+});
