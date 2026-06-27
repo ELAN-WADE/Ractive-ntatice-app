@@ -31,15 +31,15 @@ export default function RootLayout() {
     };
   }, [initialize]);
 
-  // Once auth is figured out and fonts are loaded (or fallback on error), drop the splash screen
+  // Once auth is figured out, drop the splash screen immediately
   useEffect(() => {
-    if (isInitialized && (fontsLoaded || fontError)) {
+    if (isInitialized) {
       SplashScreen.hideAsync();
     }
-  }, [isInitialized, fontsLoaded, fontError]);
+  }, [isInitialized]);
 
-  // Keep rendering null so the native splash screen stays locked on screen
-  if (!isInitialized || (!fontsLoaded && !fontError)) {
+  // Only block on auth initialization to prevent blank screen freezes on slow networks
+  if (!isInitialized) {
     return null;
   }
 
