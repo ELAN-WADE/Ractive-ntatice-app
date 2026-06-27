@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "NeighborHub",
+    "slug": "neighborhub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.neighborhub.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "NeighborHub needs your location to verify which neighborhood zone you are in.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "NeighborHub needs your location to verify which neighborhood zone you are in.",
+        "UIBackgroundModes": ["location"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.neighborhub.app",
+      "config": {
+        "googleMaps": {
+          "apiKey": "$(EXPO_PUBLIC_GOOGLE_MAPS_KEY)"
+        }
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "NeighborHub needs your location to verify which neighborhood zone you are in."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "scheme": "neighborhub"
+  }
+}

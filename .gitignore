@@ -1,0 +1,11 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jsc
+*.js.map
+.env
+.env.local
+.DS_Store
+ios/
+android/
