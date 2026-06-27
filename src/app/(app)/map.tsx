@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { LogOut, CheckCircle2, MapPin, X } from 'lucide-react-native';
+import { LogOut, CheckCircle2, MapPin, X, Search, FileText } from 'lucide-react-native';
 import { ZoneMap } from '@/components/map/ZoneMap';
 import { JoinButton } from '@/components/map/JoinButton';
 import { useLocation } from '@/hooks/useLocation';
@@ -26,6 +26,7 @@ import type { Zone } from '@/types/location';
 
 export default function MapScreen() {
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const insets = useSafeAreaInsets();
 
   // Auth
@@ -39,6 +40,7 @@ export default function MapScreen() {
   const { zones, activeZone, isLoading: isZonesLoading, refetch: refetchZones } = useZones();
 
   const clearRequestState = useZoneStore((s) => s.clearRequestState);
+  const joinRequestResult = useZoneStore((s) => s.joinRequestResult);
 
   // Show bottom sheet on zone tap
   const handleZonePress = useCallback((zone: Zone) => {
@@ -107,9 +109,14 @@ export default function MapScreen() {
 
           <View style={styles.headerActions}>
             {/* User avatar */}
-            <View style={styles.avatar}>
+            <TouchableOpacity
+              style={styles.avatar}
+              onPress={() => setShowProfileModal(true)}
+              testID="btn-user-profile"
+              accessibilityLabel="View profile"
+            >
               <Text style={styles.avatarText}>{userInitial}</Text>
-            </View>
+            </TouchableOpacity>
 
             {/* Sign out */}
             <TouchableOpacity
@@ -215,6 +222,112 @@ export default function MapScreen() {
                 </TouchableOpacity>
               </>
             )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* User Profile Modal */}
+      <Modal
+        visible={showProfileModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowProfileModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowProfileModal(false)}>
+          <Pressable style={[styles.modalCard, { paddingBottom: insets.bottom + 24 }]} onPress={() => {}}>
+            {/* Drag handle */}
+            <View style={styles.modalHandle} />
+
+            {/* Header row with close button */}
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>Resident Profile</Text>
+              <TouchableOpacity
+                style={styles.modalCloseIcon}
+                onPress={() => setShowProfileModal(false)}
+              >
+                <X size={18} color="#64748B" strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Large Avatar Centered */}
+            <View style={styles.profileAvatarContainer}>
+              <View style={styles.profileLargeAvatar}>
+                <Text style={styles.profileLargeAvatarText}>{userInitial}</Text>
+              </View>
+              <Text style={styles.profileEmail}>{userEmail}</Text>
+              
+              {/* Badge based on request result status */}
+              {joinRequestResult?.status === 'approved' ? (
+                <View style={styles.profileStatusBadgeApproved}>
+                  <CheckCircle2 size={12} color="#059669" strokeWidth={2.5} />
+                  <Text style={styles.profileStatusBadgeTextApproved}>
+                    Verified Resident ({joinRequestResult.zoneName})
+                  </Text>
+                </View>
+              ) : joinRequestResult?.status === 'under_review' ? (
+                <View style={styles.profileStatusBadgePending}>
+                  <Search size={12} color="#D97706" strokeWidth={2.5} />
+                  <Text style={styles.profileStatusBadgeTextPending}>
+                    Verification Pending ({joinRequestResult.zoneName})
+                  </Text>
+                </View>
+              ) : joinRequestResult?.status === 'pending' ? (
+                <View style={styles.profileStatusBadgePending}>
+                  <FileText size={12} color="#D97706" strokeWidth={2.5} />
+                  <Text style={styles.profileStatusBadgeTextPending}>
+                    Manual Review Pending
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.profileStatusBadgeGuest}>
+                  <MapPin size={12} color="#64748B" strokeWidth={2} />
+                  <Text style={styles.profileStatusBadgeTextGuest}>
+                    Unverified Resident (Guest)
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Details Table */}
+            <View style={styles.infoTable}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Resident ID</Text>
+                <Text style={styles.infoValue} numberOfLines={1}>
+                  {user?.id ?? 'N/A'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Joined Date</Text>
+                <Text style={styles.infoValue}>
+                  {user?.created_at
+                    ? new Date(user.created_at).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    : 'N/A'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Action buttons */}
+            <View style={styles.profileActionRow}>
+              <TouchableOpacity
+                style={styles.profileLogoutBtn}
+                onPress={() => {
+                  setShowProfileModal(false);
+                  handleSignOut();
+                }}
+              >
+                <Text style={styles.profileLogoutBtnText}>Sign Out</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.profileCloseBtn}
+                onPress={() => setShowProfileModal(false)}
+              >
+                <Text style={styles.profileCloseBtnText}>Done</Text>
+              </TouchableOpacity>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -530,5 +643,113 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#475569',
+  },
+
+  // Profile styles
+  profileAvatarContainer: {
+    alignItems: 'center',
+    marginVertical: 10,
+    gap: 8,
+  },
+  profileLargeAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  profileLargeAvatarText: {
+    fontFamily: 'RobotoCondensed-Bold',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  profileEmail: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  profileStatusBadgeApproved: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  profileStatusBadgeTextApproved: {
+    fontSize: 12,
+    color: '#059669',
+    fontWeight: '600',
+  },
+  profileStatusBadgePending: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  profileStatusBadgeTextPending: {
+    fontSize: 12,
+    color: '#D97706',
+    fontWeight: '600',
+  },
+  profileStatusBadgeGuest: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  profileStatusBadgeTextGuest: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  profileActionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  profileLogoutBtn: {
+    flex: 1,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  profileLogoutBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  profileCloseBtn: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  profileCloseBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
