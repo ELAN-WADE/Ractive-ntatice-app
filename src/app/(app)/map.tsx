@@ -89,7 +89,7 @@ export default function MapScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>NeighborHub</Text>
+            <Text style={styles.headerTitle}>NeighborHUB</Text>
             <Text style={styles.headerSubtitle}>
               {isZonesLoading
                 ? 'Loading zones…'
@@ -260,10 +260,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 19,
+    fontFamily: 'RobotoCondensed-Bold',
+    fontSize: 20,
     fontWeight: '800',
     color: '#0F172A',
-    letterSpacing: -0.4,
+    letterSpacing: 0.1,
   },
   headerSubtitle: {
     fontSize: 11,

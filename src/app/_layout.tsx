@@ -7,12 +7,21 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '@/stores/useAuthStore';
 
+import { useFonts } from 'expo-font';
+
 // Don't show the app until we know if the user is logged in or not
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const initialize = useAuthStore((s) => s.initialize);
+
+  // Load Roboto and Roboto Condensed fonts dynamically
+  const [fontsLoaded, fontError] = useFonts({
+    'Roboto-Regular': 'https://cdn.jsdelivr.net/npm/@fontsource/roboto/files/roboto-latin-400-normal.woff2',
+    'Roboto-Bold': 'https://cdn.jsdelivr.net/npm/@fontsource/roboto/files/roboto-latin-700-normal.woff2',
+    'RobotoCondensed-Bold': 'https://cdn.jsdelivr.net/npm/@fontsource/roboto-condensed/files/roboto-condensed-latin-700-normal.woff2',
+  });
 
   // Boot up Supabase auth and start listening to token changes
   useEffect(() => {
@@ -22,15 +31,15 @@ export default function RootLayout() {
     };
   }, [initialize]);
 
-  // Once auth is figured out, drop the native splash screen
+  // Once auth is figured out and fonts are loaded (or fallback on error), drop the splash screen
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized && (fontsLoaded || fontError)) {
       SplashScreen.hideAsync();
     }
-  }, [isInitialized]);
+  }, [isInitialized, fontsLoaded, fontError]);
 
   // Keep rendering null so the native splash screen stays locked on screen
-  if (!isInitialized) {
+  if (!isInitialized || (!fontsLoaded && !fontError)) {
     return null;
   }
 

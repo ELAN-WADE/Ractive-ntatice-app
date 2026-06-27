@@ -27,6 +27,7 @@ export default function LoginScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | 'confirm' | null>(null);
 
   const isLoading = useAuthStore((s) => s.isLoading);
   const storeError = useAuthStore((s) => s.error);
@@ -110,7 +111,7 @@ export default function LoginScreen() {
             <View style={styles.logoCircle}>
               <Map size={32} color="#475569" strokeWidth={1.5} />
             </View>
-            <Text style={styles.appName}>NeighborHub</Text>
+            <Text style={styles.appName}>NeighborHUB</Text>
             <Text style={styles.tagline}>Verify your neighborhood, connect with your community</Text>
           </View>
 
@@ -151,7 +152,9 @@ export default function LoginScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Email Address</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, focusedField === 'email' && styles.inputFocused]}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
                 value={email}
                 onChangeText={setEmail}
                 placeholder="you@example.com"
@@ -169,7 +172,9 @@ export default function LoginScreen() {
               <Text style={styles.label}>Password</Text>
               <View style={styles.passwordRow}>
                 <TextInput
-                  style={[styles.input, styles.passwordInput]}
+                  style={[styles.input, styles.passwordInput, focusedField === 'password' && styles.inputFocused]}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
                   value={password}
                   onChangeText={setPassword}
                   placeholder="••••••••"
@@ -180,7 +185,7 @@ export default function LoginScreen() {
                   testID="input-password"
                 />
                 <Pressable
-                  style={styles.showPasswordBtn}
+                  style={[styles.showPasswordBtn, focusedField === 'password' && styles.inputFocused]}
                   onPress={() => setShowPassword((s) => !s)}
                 >
                   {showPassword
@@ -196,7 +201,9 @@ export default function LoginScreen() {
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Confirm Password</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, focusedField === 'confirm' && styles.inputFocused]}
+                  onFocus={() => setFocusedField('confirm')}
+                  onBlur={() => setFocusedField(null)}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="••••••••"
@@ -280,10 +287,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   appName: {
-    fontSize: 30,
+    fontFamily: 'RobotoCondensed-Bold',
+    fontSize: 34,
     fontWeight: '800',
     color: '#0F172A',
-    letterSpacing: -0.8,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
     marginBottom: 8,
   },
   tagline: {
@@ -386,6 +395,10 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     flex: 1,
   },
+  inputFocused: {
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
+  },
   passwordRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -407,7 +420,7 @@ const styles = StyleSheet.create({
 
   // Submit button
   submitBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0F172A',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -416,16 +429,16 @@ const styles = StyleSheet.create({
     minHeight: 54,
     ...Platform.select({
       ios: {
-        shadowColor: '#2563EB',
+        shadowColor: '#0F172A',
         shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.15,
         shadowRadius: 8,
       },
       android: {
         elevation: 4,
       },
       web: {
-        boxShadow: '0px 3px 8px rgba(37,99,235,0.2)',
+        boxShadow: '0px 3px 8px rgba(15,23,42,0.15)',
       },
     }),
   },
