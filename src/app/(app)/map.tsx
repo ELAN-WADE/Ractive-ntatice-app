@@ -2,7 +2,7 @@
 // The map fills the entire screen. UI elements (header, status chips, bottom panel) float above it.
 // All emojis removed. SVG icons used throughout via lucide-react-native.
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { useLocation } from '@/hooks/useLocation';
 import { useZones } from '@/hooks/useZones';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useZoneStore } from '@/stores/useZoneStore';
+import { submitJoinRequest } from '@/services/joinRequests';
 import type { Zone } from '@/types/location';
 
 export default function MapScreen() {
@@ -41,6 +42,45 @@ export default function MapScreen() {
 
   const clearRequestState = useZoneStore((s) => s.clearRequestState);
   const joinRequestResult = useZoneStore((s) => s.joinRequestResult);
+  const isSubmitting = useZoneStore((s) => s.isSubmittingRequest);
+  const setIsSubmitting = useZoneStore((s) => s.setIsSubmittingRequest);
+  const setResult = useZoneStore((s) => s.setJoinRequestResult);
+  const setRequestError = useZoneStore((s) => s.setRequestError);
+
+  // Auto-submit and notify when the user enters a zone boundary
+  useEffect(() => {
+    // Only fire if we are physically inside a zone, have a valid GPS lock, 
+    // and haven't already processed a join request.
+    if (activeZone && location && !joinRequestResult && !isSubmitting) {
+      (async () => {
+        setIsSubmitting(true);
+        setRequestError(null);
+        try {
+          const result = await submitJoinRequest(
+            { latitude: location.latitude, longitude: location.longitude },
+            zones
+          );
+          setResult(result);
+          
+          // Trigger the system push notification / alert
+          if (Platform.OS === 'web') {
+            window.alert(`Entered Zone!\nYou just walked into ${activeZone.name}.\n\n${result.message}`);
+          } else {
+            Alert.alert(
+              'Entered Zone!',
+              `You just walked into ${activeZone.name}.\n\n${result.message}`,
+              [{ text: 'Awesome' }]
+            );
+          }
+        } catch (err: unknown) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to auto-submit request.';
+          setRequestError(errorMessage);
+        } finally {
+          setIsSubmitting(false);
+        }
+      })();
+    }
+  }, [activeZone, location, joinRequestResult, isSubmitting, zones, setIsSubmitting, setResult, setRequestError]);
 
   // Show bottom sheet on zone tap
   const handleZonePress = useCallback((zone: Zone) => {

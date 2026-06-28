@@ -49,7 +49,8 @@ export function JoinButton({
   const setError = useZoneStore((s) => s.setRequestError);
 
   const isInsideZone = activeZone !== null;
-  const hasResult = joinRequestResult !== null;
+  const isRejected = joinRequestResult?.status === 'rejected';
+  const hasResult = joinRequestResult !== null && !isRejected;
 
   // Fire off the join request when tapped.
   const handlePress = useCallback(async () => {
@@ -130,6 +131,16 @@ export function JoinButton({
         <View style={styles.errorBox}>
           <AlertTriangle size={13} color="#EF4444" strokeWidth={2} />
           <Text style={styles.errorText}>{requestError}</Text>
+        </View>
+      )}
+
+      {/* Rejection notice strip */}
+      {isRejected && !requestError && (
+        <View style={[styles.errorBox, { backgroundColor: '#FEF2F2', borderColor: '#FCA5A5' }]}>
+          <AlertTriangle size={13} color="#EF4444" strokeWidth={2} />
+          <Text style={[styles.errorText, { color: '#B91C1C' }]}>
+            Your previous request was rejected. You may submit a new request if your coordinates or status have updated.
+          </Text>
         </View>
       )}
 

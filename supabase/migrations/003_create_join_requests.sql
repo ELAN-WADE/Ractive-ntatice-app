@@ -68,6 +68,21 @@ CREATE TRIGGER join_requests_updated_at
   BEFORE UPDATE ON public.join_requests
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+-- Trigger to automatically set location_geometry from latitude and longitude on insert/update
+CREATE OR REPLACE FUNCTION public.set_join_request_geometry()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.latitude IS NOT NULL AND NEW.longitude IS NOT NULL THEN
+    NEW.location_geometry := ST_SetSRID(ST_MakePoint(NEW.longitude, NEW.latitude), 4326);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER join_requests_set_geometry
+  BEFORE INSERT OR UPDATE OF latitude, longitude ON public.join_requests
+  FOR EACH ROW EXECUTE FUNCTION public.set_join_request_geometry();
+
 -- ── Row Level Security ─────────────────────────────────────────────────────
 
 ALTER TABLE public.join_requests ENABLE ROW LEVEL SECURITY;
